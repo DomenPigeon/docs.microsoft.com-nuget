@@ -103,3 +103,30 @@ lib\net472\MyUtilities.dll
 ref\net472\MyLib.dll
 ref\net472\MyHelpers.dll
 ```
+
+To produce the same result with the .csproj file it needs to have the following properties:
+```xml
+<PropertyGroup>
+  <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProjectReferenceDlls</TargetsForTfmSpecificBuildOutput>
+  <NoWarn>$(NoWarn);NU5131</NoWarn>
+</PropertyGroup>
+
+<ItemGroup>
+  <ProjectReference Include="..\MyHelpers\MyHelpers.csproj" PrivateAssets="all" />
+  <ProjectReference Include="..\MyUtilities\MyUtilities.csproj" PrivateAssets="all" />
+</ItemGroup>
+
+<ItemGroup>
+  <!-- Add a ref folder to the package which only exposes the library so that the referenced class library doesn't get exposed. -->
+  <None Include="$(TargetPath)" PackagePath="ref/$(TargetFramework)" Pack="true" Condition="'$(TargetFramework)' != ''" />
+
+  <!-- Add MyUtilities to the ref folder -->
+  <None Include="$(OutputPath)MyUtilities.dll" PackagePath="ref/$(TargetFramework)" Pack="true" Condition="'$(TargetFramework)' != ''" />
+</ItemGroup>
+
+<Target Name="IncludeProjectReferenceDlls" DependsOnTargets="BuildOnlySettings;ResolveReferences">
+  <ItemGroup>
+    <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference')->WithMetadataValue('PrivateAssets', 'All'))"/>
+  </ItemGroup>
+</Target>
+```
